@@ -1,0 +1,37 @@
+from icrawler.builtin import GoogleImageCrawler
+import os
+download_dir="F://image_file/dog"
+if not os.path.exists(download_dir):
+    os.makedirs(download_dir)
+    print("make directory")
+
+google_crawler=GoogleImageCrawler(
+    feeder_threads=1,
+    parser_threads=1,
+    downloader_threads=4,
+    storage={'root_dir':download_dir})
+filters=dict(size='large', #이미지 크기
+            color='black',#이미지의 색깔을 필터링
+            license='commercial,modify',
+            date=((2017,1,1),(2017,12,31)))#검색하고자 하는 날짜의 범위
+
+google_crawler.crawl(keyword='dog',
+                     filters={'date':((2016,1,1),(2016,6,30))},
+                     max_num=1000,
+                     file_idx_offset=0)
+google_crawler.crawl(keyword='dog',
+                     filters={'date':((2016,7,1),(2016,12,31))},
+                     max_num=1000,
+                     file_idx_offset='auto')
+google_crawler.crawl(keyword='dog',
+                     filters={'date':((2017,1,1),(2017,6,30))},
+                     max_num=1000,
+                     file_idx_offset='auto')
+google_crawler.crawl(keyword='dog',
+                     filters={'date':((2017,7,1),(2017,12,31))},
+                     max_num=1000,
+                     file_idx_offset='auto')
+google_crawler.crawl(keyword='dog',
+                     filters={'date':((2018,7,1),(2018,6,30))},
+                     max_num=1000,
+                     file_idx_offset='auto')

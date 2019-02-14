@@ -1,0 +1,109 @@
+import tensorflow as tf
+import random
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from tqdm import tqdm
+from tensorflow.examples.tutorials.mnist import input_data
+tf.set_random_seed(777)
+mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+
+count = 0
+nrows = ncols = 4
+plt.figure(figsize=(12,8))
+for n in range(0,8):
+    count += 1
+    plt.subplot(nrows, ncols, count)
+    plt.imshow(mnist.test.images[n].reshape(28, 28), cmap='Greys', interpolation='nearest')
+
+plt.tight_layout()
+plt.show()
+
+
+training_epochs = 15
+batch_size = 100
+
+X = tf.placeholder(tf.float32, [None, 784])
+Y = tf.placeholder(tf.float32, [None, 10])
+
+W = tf.Variable(tf.random_normal([784, 10]))
+b = tf.Variable(tf.random_normal([10]))
+
+hypothesis = tf.matmul(X, W) + b
+
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=hypothesis, labels=Y))
+optimizer = tf.train.AdamOptimizer(learning_rate=0.001).minimize(cost)
+
+prediction = tf.equal(tf.argmax(hypothesis, 1), tf.argmax(Y, 1))
+accuracy = tf.reduce_mean(tf.cast(prediction, tf.float32))
+
+
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
+    
+for epoch in range(training_epochs):
+    avg_cost = 0
+    total_batch = int(mnist.train.num_examples / batch_size)
+
+    pbar = tqdm(range(total_batch))
+    for i in pbar:
+        batch_xs, batch_ys = mnist.train.next_batch(batch_size)
+        c, _ = sess.run([cost, optimizer], feed_dict={X: batch_xs, Y: batch_ys})
+        avg_cost += c / total_batch
+        pbar.set_description("cost : %f" % avg_cost)
+        
+print('Accuracy:', sess.run(accuracy, feed_dict={X: mnist.test.images, Y: mnist.test.labels}))
+
+
+index = []
+ori = []
+pred = []
+
+labels = sess.run(tf.argmax(mnist.test.labels, 1))
+predictions = sess.run(tf.argmax(hypothesis, 1), feed_dict={X: mnist.test.images})
+
+for i in range(0,mnist.test.num_examples):
+    if labels[i] != predictions[i]:
+        index.append(i)
+        ori.append(labels[i])
+        pred.append(predictions[i])
+        
+fail_result = pd.DataFrame({'label':ori, 'predict':pred}, index=index)
+fail_result.head()
+
+plt.figure(figsize=(12,6))
+plt.hist(fail_result['predict'], bins=10)
+plt.xlabel('fault_prediction')
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(12,6))
+sns.violinplot(x="label", y="predict", data=fail_result)
+plt.xlabel('fault_prediction')
+plt.grid()
+plt.show()
+
+
+plt.figure(figsize=(12,6))
+sns.swarmplot(x="label", y="predict", data=fail_result)
+sns.despine(offset=10, trim=True)
+plt.xlabel('fault_prediction')
+plt.grid()
+plt.show()
+
+verifying_data = fail_result.query('label == 5').sample(n=8).index
+
+count = 0
+nrows = ncols = 4
+plt.figure(figsize=(12,8))
+for n in verifying_data:
+    count += 1
+    plt.subplot(nrows, ncols, count)
+    plt.imshow(mnist.test.images[n].reshape(28, 28), cmap='Greys', interpolation='nearest')
+    tmp = "Label:" + str(fail_result['label'][n]) + ", Prediction:" + str(fail_result['predict'][n])
+    plt.title(tmp)
+
+plt.tight_layout()
+plt.show()
+
+
